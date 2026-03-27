@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">秀拼豆</string>
+    <string name="create_project">创建图纸</string>
+    <string name="import_image">导入图片</string>
+    <string name="canvas_size">画布尺寸</string>
+    <string name="color_library">色库</string>
+    <string name="color_count">色号统计</string>
+    <string name="export">导出</string>
+    <string name="brush">画笔</string>
+    <string name="eraser">橡皮擦</string>
+    <string name="fill">填充</string>
+    <string name="undo">撤销</string>
+    <string name="redo">重做</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="brush_size">画笔大小</string>
+    <string name="reduce_colors">减少颜色</string>
+    <string name="merge_similar">合并相近色</string>
+    <string name="delete_redundant">删除冗余色</string>
+    <string name="replace_color">替换配色</string>
+    <string name="compare_original">原图对比</string>
+    <string name="export_png">导出PNG</string>
+    <string name="export_pdf">导出PDF</string>
+    <string name="bead_count">豆子数量</string>
+    <string name="total">总计</string>
+</resources>
