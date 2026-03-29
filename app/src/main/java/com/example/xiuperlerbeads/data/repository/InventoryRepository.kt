@@ -349,6 +349,7 @@ class InventoryRepository(private val context: Context) {
     fun addStock(brandId: String, mardCode: String, amount: Int) {
         val index = _brandStocks.indexOfFirst { it.brandId == brandId && it.mardCode == mardCode }
         if (index >= 0) {
+            // 更新现有库存
             val oldStock = _brandStocks[index]
             val newStock = oldStock.stock + amount
             _brandStocks[index] = oldStock.copy(stock = newStock, isHidden = false)
@@ -362,6 +363,28 @@ class InventoryRepository(private val context: Context) {
                     mardCode = mardCode,
                     oldValue = oldStock.stock,
                     newValue = newStock,
+                    changeAmount = amount
+                )
+            }
+        } else {
+            // 创建新库存记录
+            val newStock = BrandStock(
+                brandId = brandId,
+                mardCode = mardCode,
+                stock = amount,
+                used = 0,
+                isHidden = false
+            )
+            _brandStocks.add(newStock)
+            saveBrandStocks()
+            if (amount > 0) {
+                addHistoryRecord(
+                    HistoryType.STOCK_ADD,
+                    description = "添加库存: $mardCode +$amount",
+                    brandId = brandId,
+                    mardCode = mardCode,
+                    oldValue = 0,
+                    newValue = amount,
                     changeAmount = amount
                 )
             }
