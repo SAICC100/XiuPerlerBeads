@@ -176,7 +176,8 @@ class DrawingUseCase {
         return PerlerProject(
             name = name,
             width = width,
-            height = Array(height) { arrayOfNulls(width) }
+            height = height,
+            pixels = Array(height) { arrayOfNulls(width) }
         )
     }
 }

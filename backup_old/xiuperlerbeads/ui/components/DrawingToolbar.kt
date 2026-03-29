@@ -20,6 +20,7 @@ import com.example.xiuperlerbeads.domain.model.DrawingTool
 /**
  * Drawing toolbar with tool selection
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawingToolbar(
     selectedTool: DrawingTool,
@@ -66,7 +67,12 @@ fun DrawingToolbar(
                 enabled = canUndo
             )
 
-            VerticalDivider(modifier = Modifier.height(32.dp))
+            Divider(
+                modifier = Modifier
+                    .height(32.dp)
+                    .width(1.dp),
+                color = MaterialTheme.colorScheme.outline
+            )
 
             IconButton(
                 onClick = onUndo,
@@ -161,6 +167,7 @@ private fun ToolButton(
  * Canvas size selector
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun CanvasSizeSelector(
     selectedSize: Int,
     onSizeSelected: (Int) -> Unit,

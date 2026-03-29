@@ -75,8 +75,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
-    // Image processing
-    implementation("androidx.activity:activity-result-contracts:1.8.1")
+    // Image processing - Activity Result Contracts is included in activity-compose
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
