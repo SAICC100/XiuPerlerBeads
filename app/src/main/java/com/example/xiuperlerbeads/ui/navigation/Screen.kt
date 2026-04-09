@@ -4,12 +4,21 @@ package com.example.xiuperlerbeads.ui.navigation
  * Navigation routes for the app
  */
 sealed class Screen(val route: String) {
+    companion object {
+        /** Sentinel value for a new canvas project (no existing project ID). */
+        const val NEW_PROJECT_ID = "-1"
+    }
+
     object Home : Screen("home")
     object Create : Screen("create")
     object Inventory : Screen("inventory")
     object Projects : Screen("projects")
+    object JournalHome : Screen("journal_home")
+    object AddEntry : Screen("add_entry")
+    object JournalSummary : Screen("journal_summary")
+    object Profile : Screen("profile")
     object Canvas : Screen("canvas/{projectId}") {
-        fun createRoute(projectId: String = "-1") = "canvas/$projectId"
+        fun createRoute(projectId: String = NEW_PROJECT_ID) = "canvas/$projectId"
     }
     object ImageImport : Screen("image_import")
     object AIScan : Screen("ai_scan")
@@ -29,14 +38,14 @@ sealed class Screen(val route: String) {
  */
 val bottomNavItems = listOf(
     BottomNavItem(
-        route = Screen.Home.route,
+        route = Screen.JournalHome.route,
         title = "首页",
         icon = "home"
     ),
     BottomNavItem(
-        route = Screen.Create.route,
-        title = "创作",
-        icon = "create"
+        route = Screen.JournalSummary.route,
+        title = "汇总",
+        icon = "bar_chart"
     ),
     BottomNavItem(
         route = Screen.Inventory.route,
@@ -44,9 +53,9 @@ val bottomNavItems = listOf(
         icon = "inventory"
     ),
     BottomNavItem(
-        route = Screen.Projects.route,
-        title = "项目",
-        icon = "projects"
+        route = Screen.Profile.route,
+        title = "我的",
+        icon = "person"
     )
 )
 

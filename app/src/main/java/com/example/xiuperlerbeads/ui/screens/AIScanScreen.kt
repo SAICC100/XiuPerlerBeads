@@ -29,9 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.xiuperlerbeads.data.ai.AIManager
 import com.example.xiuperlerbeads.data.ai.RecognizedColor
+import com.example.xiuperlerbeads.data.export.ExportManager
 import com.example.xiuperlerbeads.domain.model.BeadColorManager
+import com.example.xiuperlerbeads.domain.model.BeadUsage
+import com.example.xiuperlerbeads.domain.model.ProjectRecord
 import com.example.xiuperlerbeads.ui.viewmodel.InventoryViewModel
 import kotlinx.coroutines.launch
+import android.content.Intent
 
 /**
  * AI 扫描屏幕
@@ -56,6 +60,7 @@ fun AIScanScreen(
     var useLocalRecognition by remember { mutableStateOf(false) }
     
     val aiManager = remember { AIManager(context) }
+    val exportManager = remember { ExportManager(context) }
     val config = remember { aiManager.getConfig() }
     
     // 检查 API 配置
@@ -116,7 +121,25 @@ fun AIScanScreen(
                 },
                 actions = {
                     if (recognitionResult.isNotEmpty()) {
-                        IconButton(onClick = { /* 保存项目 */ }) {
+                        IconButton(onClick = {
+                            try {
+                                val sb = StringBuilder()
+                                sb.appendLine("AI 识别结果 - 共 ${recognitionResult.size} 种颜色")
+                                sb.appendLine("=".repeat(30))
+                                recognitionResult.sortedByDescending { it.count }.forEach { color ->
+                                    sb.appendLine("• ${color.colorName ?: color.colorHex}  ${color.colorHex}  ${color.count}颗  (${String.format("%.1f", color.percentage)}%)")
+                                }
+                                val uri = exportManager.saveTextToFile(sb.toString(), "ai_scan_result")
+                                if (uri != null) {
+                                    val shareIntent = exportManager.shareContent(uri, "text/plain", "AI 识别结果")
+                                    context.startActivity(Intent.createChooser(shareIntent, "分享识别结果"))
+                                } else {
+                                    Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
                             Icon(Icons.Default.Save, "保存")
                         }
                     }
@@ -394,7 +417,29 @@ fun AIScanScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
-                            onClick = { /* 导出材料清单 */ },
+                            onClick = {
+                                try {
+                                    val sb = StringBuilder()
+                                    sb.appendLine("AI 识别材料清单 - 共 ${recognitionResult.size} 种颜色")
+                                    sb.appendLine("=".repeat(30))
+                                    var total = 0
+                                    recognitionResult.sortedByDescending { it.count }.forEach { color ->
+                                        sb.appendLine("• ${color.colorName ?: color.colorHex}  ${color.colorHex}  ${color.count}颗  (${String.format("%.1f", color.percentage)}%)")
+                                        total += color.count
+                                    }
+                                    sb.appendLine("-".repeat(30))
+                                    sb.appendLine("合计: $total 颗")
+                                    val uri = exportManager.saveTextToFile(sb.toString(), "bead_material_list")
+                                    if (uri != null) {
+                                        val shareIntent = exportManager.shareContent(uri, "text/plain", "材料清单")
+                                        context.startActivity(Intent.createChooser(shareIntent, "导出材料清单"))
+                                    } else {
+                                        Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.ListAlt, null)
@@ -402,7 +447,7 @@ fun AIScanScreen(
                             Text("导出清单")
                         }
                         Button(
-                            onClick ={ /* 创建项目 */ },
+                            onClick = { onNavigateToCanvas(com.example.xiuperlerbeads.ui.navigation.Screen.NEW_PROJECT_ID) },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Add, null)

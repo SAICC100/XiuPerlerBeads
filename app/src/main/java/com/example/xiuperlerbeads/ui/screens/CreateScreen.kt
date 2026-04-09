@@ -25,7 +25,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CreateScreen(
     onNavigateToCanvas: (Long) -> Unit,
-    onNavigateToImport: () -> Unit
+    onNavigateToImport: () -> Unit,
+    onNavigateToTemplateLibrary: () -> Unit = {}
 ) {
     var showNewProjectDialog by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableStateOf(32) }
@@ -81,7 +82,7 @@ fun CreateScreen(
                 icon = Icons.Default.Collections,
                 title = "素材库",
                 description = "动物 · 人物 · 植物 · 更多",
-                onClick = { /* TODO: Navigate to template library */ }
+                onClick = onNavigateToTemplateLibrary
             )
             
             Spacer(modifier = Modifier.weight(1f))

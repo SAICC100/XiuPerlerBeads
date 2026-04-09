@@ -64,6 +64,11 @@ data class CanvasState(
  * 管理画布状态、工具选择、撤销/重做等
  */
 class CanvasViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        // 撤销栈最大深度，防止大尺寸画布快照导致 OOM
+        private const val MAX_UNDO_STACK_SIZE = 30
+    }
     
     private val repository = InventoryRepository(application)
     private val allColors = BeadColorManager.getAllColors()
@@ -163,9 +168,10 @@ class CanvasViewModel(application: Application) : AndroidViewModel(application) 
         
         // 如果颜色没变，不保存撤销状态
         if (currentColor == newColor) return
-        
-        // 保存撤销状态
-        val newUndoStack = currentState.undoStack + listOf(currentState.canvasData)
+
+        // 保存撤销状态，超出上限时丢弃最旧的快照
+        val newUndoStack = (currentState.undoStack + listOf(currentState.canvasData))
+            .takeLast(MAX_UNDO_STACK_SIZE)
         
         // 应用绘制
         val newCanvasData = currentState.canvasData.toMutableList().map { it.toMutableList() }
@@ -210,9 +216,10 @@ class CanvasViewModel(application: Application) : AndroidViewModel(application) 
             stack.add(Pair(cx, cy - 1))
         }
         
-        // 保存撤销状态
-        val newUndoStack = currentState.undoStack + listOf(currentState.canvasData)
-        
+        // 保存撤销状态，超出上限时丢弃最旧的快照
+        val newUndoStack = (currentState.undoStack + listOf(currentState.canvasData))
+            .takeLast(MAX_UNDO_STACK_SIZE)
+
         _state.update {
             it.copy(
                 canvasData = mutableCanvas,
@@ -273,7 +280,8 @@ class CanvasViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun clearCanvas() {
         val currentState = _state.value
-        val newUndoStack = currentState.undoStack + listOf(currentState.canvasData)
+        val newUndoStack = (currentState.undoStack + listOf(currentState.canvasData))
+            .takeLast(MAX_UNDO_STACK_SIZE)
         val size = currentState.gridSize
         
         _state.update {

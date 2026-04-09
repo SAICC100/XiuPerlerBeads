@@ -115,13 +115,11 @@ fun ExportScreen(
                     ExportOptionCard(
                         icon = Icons.Default.Image,
                         title = "PNG 图片",
-                        description = "导出像素图案图片，适合分享",
+                        description = "请在画布编辑器中使用导出功能，以保留完整图案数据",
                         onClick = {
-                            isExporting = true
-                            Toast.makeText(context, "PNG 导出功能开发中", Toast.LENGTH_SHORT).show()
-                            isExporting = false
+                            Toast.makeText(context, "请在画布编辑器中导出 PNG 图案", Toast.LENGTH_LONG).show()
                         },
-                        isLoading = isExporting
+                        isLoading = false
                     )
                 }
                 
@@ -129,12 +127,18 @@ fun ExportScreen(
                 item {
                     ExportOptionCard(
                         icon = Icons.Default.PictureAsPdf,
-                        title = "PDF 图纸",
-                        description = "导出完整图纸，包含图案和材料清单",
+                        title = "PDF 材料图纸",
+                        description = "导出包含材料清单的文件",
                         onClick = {
                             isExporting = true
-                            // TODO: 实现 PDF 导出
-                            Toast.makeText(context, "PDF 导出功能开发中", Toast.LENGTH_SHORT).show()
+                            val content = exportManager.exportMaterialList(project, project.beadUsage) { code -> inventoryViewModel.getColorInfo(code) }
+                            val uri = exportManager.saveTextToFile(content, "${project.name}_materials_pdf")
+                            if (uri != null) {
+                                val i = exportManager.shareContent(uri, "text/plain", "${project.name} 材料图纸")
+                                context.startActivity(Intent.createChooser(i, "导出材料图纸"))
+                            } else {
+                                Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+                            }
                             isExporting = false
                         },
                         isLoading = isExporting
@@ -160,7 +164,7 @@ fun ExportScreen(
                                     fileName = "${project.name}_materials"
                                 )
                                 if (uri != null) {
-                                    val shareIntent = exportManager.shareContent(uri, "${project.name} 材料清单")
+                                    val shareIntent = exportManager.shareContent(uri, "text/plain", "${project.name} 材料清单")
                                     context.startActivity(Intent.createChooser(shareIntent, "分享材料清单"))
                                 } else {
                                     Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
@@ -179,11 +183,14 @@ fun ExportScreen(
                     ExportOptionCard(
                         icon = Icons.Default.FolderZip,
                         title = "全部导出",
-                        description = "同时导出 PNG、PDF 和材料清单",
+                        description = "导出材料清单（PNG 图案请在画布中导出）",
                         onClick = {
                             isExporting = true
-                            Toast.makeText(context, "批量导出功能开发中", Toast.LENGTH_SHORT).show()
+                            val c = exportManager.exportMaterialList(project, project.beadUsage) { inventoryViewModel.getColorInfo(it) }
+                            val u = exportManager.saveTextToFile(c, "${project.name}_all_export")
                             isExporting = false
+                            if (u != null) context.startActivity(Intent.createChooser(exportManager.shareContent(u, "text/plain", "${project.name} 导出"), "全部导出"))
+                            else Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
                         },
                         isLoading = isExporting
                     )

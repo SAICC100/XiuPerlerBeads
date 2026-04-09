@@ -197,48 +197,64 @@ class ExportManager(private val context: Context) {
             }
             
             var yPos = 110f
-            canvas2.drawText("颜色预览", 50f, yPos, headerPaint)
-            canvas2.drawText("色号", 120f, yPos, headerPaint)
-            canvas2.drawText("颜色名称", 200f, yPos, headerPaint)
-            canvas2.drawText("数量", 350f, yPos, headerPaint)
-            canvas2.drawText("状态", 430f, yPos, headerPaint)
-            
-            yPos += 10f
-            canvas2.drawLine(50f, yPos, pageWidth - 50f, yPos, gridPaint)
-            yPos += 20f
-            
-            // 材料列表
+            var currentPage = page2
+            var currentCanvas = canvas2
+            var pageIndex = 2
+
+            fun drawTableHeader(canvas: android.graphics.Canvas) {
+                canvas.drawText("颜色预览", 50f, 110f, headerPaint)
+                canvas.drawText("色号", 120f, 110f, headerPaint)
+                canvas.drawText("颜色名称", 200f, 110f, headerPaint)
+                canvas.drawText("数量", 350f, 110f, headerPaint)
+                canvas.drawText("状态", 430f, 110f, headerPaint)
+                canvas.drawLine(50f, 120f, pageWidth - 50f, 120f, gridPaint)
+            }
+
+            drawTableHeader(currentCanvas)
+            yPos = 140f
+
+            // 材料列表，内容超出当前页时自动换页
             beadUsage.sortedByDescending { it.quantity }.forEach { usage ->
-                if (yPos > pageHeight - 50) return@forEach
-                
+                if (yPos > pageHeight - 80) {
+                    // 当前页底部备注
+                    currentCanvas.drawText("续下页…", pageWidth - 100f, pageHeight - 40f, subtitlePaint)
+                    document.finishPage(currentPage)
+
+                    // 新建一页
+                    pageIndex++
+                    val newPageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageIndex).create()
+                    currentPage = document.startPage(newPageInfo)
+                    currentCanvas = currentPage.canvas
+                    currentCanvas.drawText("材料清单（续）", 50f, 50f, titlePaint)
+                    drawTableHeader(currentCanvas)
+                    yPos = 140f
+                }
+
                 val colorInfo = getColorInfo(usage.colorCode)
-                
-                // 颜色预览方块
+
                 colorPaint.color = colorInfo?.toArgb() ?: Color.GRAY
-                canvas2.drawRect(50f, yPos - 10f, 70f, yPos + 10f, colorPaint)
-                
-                // 文字信息
-                canvas2.drawText(colorInfo?.mardCode ?: usage.colorCode, 120f, yPos, cellPaint)
-                canvas2.drawText(colorInfo?.colorName ?: "-", 200f, yPos, cellPaint)
-                canvas2.drawText("${usage.quantity}颗", 350f, yPos, cellPaint)
-                
-                // 状态
+                currentCanvas.drawRect(50f, yPos - 10f, 70f, yPos + 10f, colorPaint)
+
+                currentCanvas.drawText(colorInfo?.mardCode ?: usage.colorCode, 120f, yPos, cellPaint)
+                currentCanvas.drawText(colorInfo?.colorName ?: "-", 200f, yPos, cellPaint)
+                currentCanvas.drawText("${usage.quantity}颗", 350f, yPos, cellPaint)
+
                 val status = when {
                     usage.quantity > 500 -> "充足"
                     usage.quantity > 100 -> "正常"
                     else -> "少量"
                 }
-                canvas2.drawText(status, 430f, yPos, cellPaint)
-                
+                currentCanvas.drawText(status, 430f, yPos, cellPaint)
+
                 yPos += 25f
             }
-            
-            // 底部备注
-            yPos = pageHeight - 80f
-            canvas2.drawText("生成时间: ${dateFormat.format(Date())}", 50f, yPos, subtitlePaint)
-            canvas2.drawText("由秀拼豆生成", 50f, yPos + 20f, subtitlePaint)
-            
-            document.finishPage(page2)
+
+            // 最后一页底部备注
+            val footerY = pageHeight - 80f
+            currentCanvas.drawText("生成时间: ${dateFormat.format(Date())}", 50f, footerY, subtitlePaint)
+            currentCanvas.drawText("由秀拼豆生成", 50f, footerY + 20f, subtitlePaint)
+
+            document.finishPage(currentPage)
             
             // 保存 PDF
             val fileName = "xiuperler_${project.name.replace(" ", "_")}_${dateFormat.format(Date())}.pdf"
@@ -330,13 +346,9 @@ class ExportManager(private val context: Context) {
     /**
      * 分享内容
      */
-    fun shareContent(uri: Uri, title: String): Intent {
+    fun shareContent(uri: Uri, mimeType: String = "*/*", title: String): Intent {
         return Intent(Intent.ACTION_SEND).apply {
-            type = when {
-                uri.toString().endsWith(".pdf") -> "application/pdf"
-                uri.toString().endsWith(".png") -> "image/png"
-                else -> "text/plain"
-            }
+            type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, title)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

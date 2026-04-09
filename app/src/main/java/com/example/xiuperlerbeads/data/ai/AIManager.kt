@@ -334,12 +334,14 @@ class AIManager(private val context: Context) {
      */
     private suspend fun callQwen(imageBase64: String, config: AIConfig): RecognitionResult {
         return try {
-            val url = URL("${config.provider.endpoint}?api_key=${config.apiKey}")
+            val url = URL(config.provider.endpoint)
             val connection = url.openConnection() as HttpURLConnection
-            
+
             connection.apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
+                // API Key 应通过 Authorization Header 传递，不能暴露在 URL 中
+                setRequestProperty("Authorization", "Bearer ${config.apiKey}")
                 doOutput = true
                 connectTimeout = 60000
                 readTimeout = 120000
@@ -478,7 +480,7 @@ class AIManager(private val context: Context) {
             }
             
             val requestBody = JSONObject().apply {
-                put("model", "claude-3-sonnet-20240229")
+                put("model", config.model)
                 put("max_tokens", config.maxTokens)
                 put("temperature", config.temperature)
                 put("messages", JSONArray().apply {

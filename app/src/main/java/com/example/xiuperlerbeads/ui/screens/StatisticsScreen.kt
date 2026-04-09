@@ -1,5 +1,7 @@
 package com.example.xiuperlerbeads.ui.screens
 
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,9 +20,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.xiuperlerbeads.data.export.ExportManager
 import com.example.xiuperlerbeads.domain.model.HistoryRecord
 import com.example.xiuperlerbeads.domain.model.HistoryType
 import com.example.xiuperlerbeads.ui.theme.StockEnough
@@ -40,9 +44,11 @@ fun StatisticsScreen(
     onNavigateBack: () -> Unit = {},
     inventoryViewModel: InventoryViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val state by inventoryViewModel.state.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("概览", "使用趋势", "历史记录")
+    val exportManager = remember { ExportManager(context) }
     
     // 计算统计数据
     val totalColors = state.stocks.count { !it.isHidden }
@@ -64,7 +70,29 @@ fun StatisticsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* 导出报表 */ }) {
+                    IconButton(onClick = {
+                        try {
+                            val sb = StringBuilder()
+                            val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                            sb.appendLine("库存统计报表")
+                            sb.appendLine("生成时间: ${fmt.format(Date())}")
+                            sb.appendLine("=".repeat(30))
+                            sb.appendLine("总颜色数: $totalColors 种")
+                            sb.appendLine("总库存量: $totalQuantity 颗")
+                            sb.appendLine("充足 (>50): $enoughCount 种")
+                            sb.appendLine("偏少 (1-50): $lowStockCount 种")
+                            sb.appendLine("缺货 (0): $outOfStockCount 种")
+                            val uri = exportManager.saveTextToFile(sb.toString(), "inventory_report")
+                            if (uri != null) {
+                                val shareIntent = exportManager.shareContent(uri, "text/plain", "库存统计报表")
+                                context.startActivity(Intent.createChooser(shareIntent, "分享报表"))
+                            } else {
+                                Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }) {
                         Icon(Icons.Default.Share, "导出")
                     }
                 }

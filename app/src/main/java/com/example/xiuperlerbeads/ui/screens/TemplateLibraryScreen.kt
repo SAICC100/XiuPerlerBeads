@@ -50,47 +50,9 @@ fun TemplateLibraryScreen(
     var selectedCategory by remember { mutableStateOf<TemplateCategory?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     
-    // 模拟素材数据
-    val templates = remember {
-        listOf(
-            // 动物
-            TemplateItem("1", "小兔子", TemplateCategory.ANIMALS, 0xFFFFB6C1),
-            TemplateItem("2", "小猫", TemplateCategory.ANIMALS, 0xFFFFA500),
-            TemplateItem("3", "小狗", TemplateCategory.ANIMALS, 0xFFDEB887),
-            TemplateItem("4", "小熊", TemplateCategory.ANIMALS, 0xFF8B4513),
-            TemplateItem("5", "熊猫", TemplateCategory.ANIMALS, 0xFFFFFFFF),
-            TemplateItem("6", "狐狸", TemplateCategory.ANIMALS, 0xFFFF6600),
-            TemplateItem("7", "猫咪", TemplateCategory.ANIMALS, 0xFFFFB6C1),
-            TemplateItem("8", "小鸟", TemplateCategory.ANIMALS, 0xFF87CEEB),
-            // 人物
-            TemplateItem("9", "小女孩", TemplateCategory.CHARACTERS, 0xFFFFC0CB),
-            TemplateItem("10", "小男孩", TemplateCategory.CHARACTERS, 0xFFADD8E6),
-            TemplateItem("11", "爷爷", TemplateCategory.CHARACTERS, 0xFFDCDCDC),
-            TemplateItem("12", "奶奶", TemplateCategory.CHARACTERS, 0xFFFFE4E1),
-            // 植物
-            TemplateItem("13", "向日葵", TemplateCategory.PLANTS, 0xFFFFD700),
-            TemplateItem("14", "玫瑰", TemplateCategory.PLANTS, 0xFFFF0000),
-            TemplateItem("15", "樱花", TemplateCategory.PLANTS, 0xFFFFB7C5),
-            TemplateItem("16", "多肉", TemplateCategory.PLANTS, 0xFF90EE90),
-            // 美食
-            TemplateItem("17", "蛋糕", TemplateCategory.FOODS, 0xFFFFB6C1),
-            TemplateItem("18", "冰淇淋", TemplateCategory.FOODS, 0xFFFFA07A),
-            TemplateItem("19", "披萨", TemplateCategory.FOODS, 0xFFFFD700),
-            TemplateItem("20", "汉堡", TemplateCategory.FOODS, 0xFF8B4513),
-            // 物品
-            TemplateItem("21", "爱心", TemplateCategory.OBJECTS, 0xFFFF0000),
-            TemplateItem("22", "星星", TemplateCategory.OBJECTS, 0xFFFFFF00),
-            TemplateItem("23", "彩虹", TemplateCategory.OBJECTS, 0xFFFF00FF),
-            TemplateItem("24", "汽车", TemplateCategory.OBJECTS, 0xFFFF0000),
-            // 图案
-            TemplateItem("25", "方格", TemplateCategory.PATTERNS, 0xFF0000FF),
-            TemplateItem("26", "条纹", TemplateCategory.PATTERNS, 0xFFFF0000),
-            TemplateItem("27", "波点", TemplateCategory.PATTERNS, 0xFFFF69B4),
-            TemplateItem("28", "心形", TemplateCategory.PATTERNS, 0xFFFF1493),
-        )
-    }
-    
-    val filteredTemplates = remember(selectedCategory, searchQuery, templates) {
+    val templates: List<TemplateItem> = emptyList()
+
+    val filteredTemplates = remember(selectedCategory, searchQuery) {
         templates.filter { template ->
             (selectedCategory == null || template.category == selectedCategory) &&
             (searchQuery.isEmpty() || template.name.contains(searchQuery, ignoreCase = true))
@@ -153,19 +115,48 @@ fun TemplateLibraryScreen(
                 }
             }
             
-            // 素材网格
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(filteredTemplates) { template ->
-                    TemplateCard(
-                        template = template,
-                        onClick = { onTemplateSelected(template) }
-                    )
+            if (filteredTemplates.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Collections,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "素材库正在建设中",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "敬请期待更多精美拼豆图案",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredTemplates) { template ->
+                        TemplateCard(
+                            template = template,
+                            onClick = { onTemplateSelected(template) }
+                        )
+                    }
                 }
             }
         }

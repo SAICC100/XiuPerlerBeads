@@ -396,17 +396,20 @@ class InventoryRepository(private val context: Context) {
         val index = _brandStocks.indexOfFirst { it.brandId == brandId && it.mardCode == mardCode }
         if (index >= 0) {
             val oldStock = _brandStocks[index]
-            _brandStocks[index] = oldStock.copy(used = oldStock.used + amount, isHidden = false)
+            // used 不能超过 stock，防止 available 出现负数
+            val newUsed = minOf(oldStock.used + amount, oldStock.stock)
+            _brandStocks[index] = oldStock.copy(used = newUsed, isHidden = false)
             saveBrandStocks()
 
+            val actualDeducted = newUsed - oldStock.used
             addHistoryRecord(
                 HistoryType.STOCK_DEDUCT,
-                description = "扣减库存: $colorCode -$amount",
+                description = "扣减库存: $colorCode -$actualDeducted",
                 brandId = brandId,
                 mardCode = mardCode,
                 oldValue = oldStock.available,
-                newValue = oldStock.available - amount,
-                changeAmount = -amount
+                newValue = oldStock.stock - newUsed,
+                changeAmount = -actualDeducted
             )
             return true
         }
@@ -520,7 +523,8 @@ class InventoryRepository(private val context: Context) {
     }
 
     fun getExecutedProjects(): List<ProjectRecord> {
-        return _projects.filter { !it.isPlanned }
+        // 已执行 = isPlanned 为 false 且未归档，避免与已归档项目重叠
+        return _projects.filter { !it.isPlanned && !it.isArchived }
     }
 
     fun getArchivedProjects(): List<ProjectRecord> {
@@ -1029,7 +1033,14 @@ class InventoryRepository(private val context: Context) {
                 prefs.edit().putString(KEY_CUSTOM_COLORS, colorsJson).apply()
                 loadCustomColors()
             }
-            
+
+            // 恢复采购记录（原来遗漏了此项）
+            data.optJSONArray("purchaseRecords")?.let { array ->
+                val recordsJson = array.toString()
+                prefs.edit().putString(KEY_PURCHASE_RECORDS, recordsJson).apply()
+                loadPurchaseRecords()
+            }
+
             true
         } catch (e: Exception) {
             e.printStackTrace()

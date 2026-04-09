@@ -67,7 +67,7 @@ fun CanvasScreen(
     
     // 初始化画布
     LaunchedEffect(projectId, gridSize, projectName) {
-        if (projectId != null && projectId != "-1") {
+        if (projectId != null && projectId != com.example.xiuperlerbeads.ui.navigation.Screen.NEW_PROJECT_ID) {
             viewModel.loadProject(projectId)
         } else {
             viewModel.initializeCanvas(gridSize, projectName)

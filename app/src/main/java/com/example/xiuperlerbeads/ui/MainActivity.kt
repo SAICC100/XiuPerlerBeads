@@ -3,22 +3,13 @@ package com.example.xiuperlerbeads.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -50,17 +41,17 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    
+
     // Screens that should show bottom bar
     val bottomBarRoutes = listOf(
-        Screen.Home.route,
-        Screen.Create.route,
+        Screen.JournalHome.route,
+        Screen.JournalSummary.route,
         Screen.Inventory.route,
-        Screen.Projects.route
+        Screen.Profile.route
     )
-    
+
     val showBottomBar = currentRoute in bottomBarRoutes
-    
+
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
@@ -68,26 +59,22 @@ fun MainScreen() {
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = "首页") },
                         label = { Text("首页") },
-                        selected = currentRoute == Screen.Home.route,
+                        selected = currentRoute == Screen.JournalHome.route,
                         onClick = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                            navController.navigate(Screen.JournalHome.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Palette, contentDescription = "创作") },
-                        label = { Text("创作") },
-                        selected = currentRoute == Screen.Create.route,
+                        icon = { Icon(Icons.Default.BarChart, contentDescription = "汇总") },
+                        label = { Text("汇总") },
+                        selected = currentRoute == Screen.JournalSummary.route,
                         onClick = {
-                            navController.navigate(Screen.Create.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                            navController.navigate(Screen.JournalSummary.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -99,23 +86,19 @@ fun MainScreen() {
                         selected = currentRoute == Screen.Inventory.route,
                         onClick = {
                             navController.navigate(Screen.Inventory.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Folder, contentDescription = "项目") },
-                        label = { Text("项目") },
-                        selected = currentRoute == Screen.Projects.route,
+                        icon = { Icon(Icons.Default.Person, contentDescription = "我的") },
+                        label = { Text("我的") },
+                        selected = currentRoute == Screen.Profile.route,
                         onClick = {
-                            navController.navigate(Screen.Projects.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -127,10 +110,35 @@ fun MainScreen() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = Screen.JournalHome.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            // Home Screen
+            // Journal Home Screen
+            composable(Screen.JournalHome.route) {
+                JournalHomeScreen(
+                    onNavigateToAddEntry = { navController.navigate(Screen.AddEntry.route) },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                )
+            }
+
+            // Add Entry Screen
+            composable(Screen.AddEntry.route) {
+                AddEntryScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Journal Summary Screen
+            composable(Screen.JournalSummary.route) {
+                JournalSummaryScreen()
+            }
+
+            // Profile Screen
+            composable(Screen.Profile.route) {
+                ProfileScreen()
+            }
+
+            // Home Screen (legacy)
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
@@ -143,7 +151,7 @@ fun MainScreen() {
                     onNavigateToTemplateLibrary = { navController.navigate(Screen.TemplateLibrary.route) }
                 )
             }
-            
+
             // Create Screen
             composable(Screen.Create.route) {
                 CreateScreen(
@@ -152,10 +160,13 @@ fun MainScreen() {
                     },
                     onNavigateToImport = {
                         navController.navigate(Screen.ImageImport.route)
+                    },
+                    onNavigateToTemplateLibrary = {
+                        navController.navigate(Screen.TemplateLibrary.route)
                     }
                 )
             }
-            
+
             // Inventory Screen
             composable(Screen.Inventory.route) {
                 InventoryScreen(
@@ -164,7 +175,7 @@ fun MainScreen() {
                     }
                 )
             }
-            
+
             // Projects Screen
             composable(Screen.Projects.route) {
                 ProjectsScreen(
@@ -173,16 +184,16 @@ fun MainScreen() {
                     }
                 )
             }
-            
+
             // Canvas Screen
             composable(Screen.Canvas.route) { backStackEntry ->
-                val projectId = backStackEntry.arguments?.getString("projectId") ?: "-1"
+                val projectId = backStackEntry.arguments?.getString("projectId") ?: Screen.NEW_PROJECT_ID
                 CanvasScreen(
                     projectId = projectId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             // Image Import Screen
             composable(Screen.ImageImport.route) {
                 ImageImportScreen(
@@ -194,37 +205,40 @@ fun MainScreen() {
                     }
                 )
             }
-            
+
             // AI Scan Screen
             composable(Screen.AIScan.route) {
                 AIScanScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCanvas = { projectId ->
+                        navController.navigate(Screen.Canvas.createRoute(projectId))
+                    }
                 )
             }
-            
+
             // Statistics Screen
             composable(Screen.Statistics.route) {
                 StatisticsScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             // Restock Screen
             composable(Screen.Restock.route) {
                 RestockScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             // Export Screen
             composable(Screen.Export.route) { backStackEntry ->
-                val projectId = backStackEntry.arguments?.getString("projectId") ?: "-1"
+                val projectId = backStackEntry.arguments?.getString("projectId") ?: Screen.NEW_PROJECT_ID
                 ExportScreen(
                     projectId = projectId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             // Settings Screen
             composable(Screen.Settings.route) {
                 SettingsScreen(
@@ -232,81 +246,33 @@ fun MainScreen() {
                     onNavigateToAISettings = { navController.navigate(Screen.AISettings.route) }
                 )
             }
-            
+
             // AI Settings Screen
             composable(Screen.AISettings.route) {
                 AISettingsScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             // Template Library Screen
             composable(Screen.TemplateLibrary.route) {
                 TemplateLibraryScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onTemplateSelected = { template ->
-                        // TODO: Navigate to canvas with template
-                        navController.popBackStack()
+                    onTemplateSelected = { _ ->
+                        // Template library is currently empty; navigate to new canvas when a template is selected
+                        navController.navigate(Screen.Canvas.createRoute(Screen.NEW_PROJECT_ID)) {
+                            popUpTo(Screen.TemplateLibrary.route) { inclusive = true }
+                        }
                     }
                 )
             }
-            
+
             // Brand Manager Screen
             composable(Screen.BrandManager.route) {
                 BrandManagerScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlaceholderScreen(
-    title: String,
-    description: String,
-    onNavigateBack: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "返回")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                Icons.Default.Construction,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
         }
     }
 }

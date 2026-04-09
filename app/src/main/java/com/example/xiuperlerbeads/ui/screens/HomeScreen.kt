@@ -24,6 +24,9 @@ import com.example.xiuperlerbeads.domain.model.ProjectRecord
 import com.example.xiuperlerbeads.ui.theme.StockLow
 import com.example.xiuperlerbeads.ui.theme.StockOut
 import com.example.xiuperlerbeads.ui.viewmodel.InventoryViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,14 +43,28 @@ fun HomeScreen(
 ) {
     val state by inventoryViewModel.state.collectAsState()
     var showSearchDialog by remember { mutableStateOf(false) }
-    
-    // Mock recent projects for demo
-    val recentProjects = remember {
-        listOf(
-            RecentProject("小兔子", "5分钟前", 32),
-            RecentProject("猫咪", "昨天", 48),
-            RecentProject("皮卡丘", "3天前", 64)
-        )
+
+    val recentProjects = remember(state.projects) {
+        state.projects
+            .sortedByDescending { it.date }
+            .take(5)
+            .map { project ->
+                val now = System.currentTimeMillis()
+                val diff = now - project.date
+                val timeAgo = when {
+                    diff < 60_000 -> "刚刚"
+                    diff < 3_600_000 -> "${diff / 60_000}分钟前"
+                    diff < 86_400_000 -> "${diff / 3_600_000}小时前"
+                    diff < 86_400_000 * 7 -> "${diff / 86_400_000}天前"
+                    else -> SimpleDateFormat("MM/dd", Locale.getDefault()).format(Date(project.date))
+                }
+                RecentProject(
+                    name = project.name,
+                    timeAgo = timeAgo,
+                    colorCount = project.beadUsage.size,
+                    id = project.id
+                )
+            }
     }
     
     Scaffold(
@@ -162,10 +179,19 @@ fun HomeScreen(
                 }
             }
             item {
-                RecentProjectsRow(
-                    projects = recentProjects,
-                    onProjectClick = onNavigateToProjects
-                )
+                if (recentProjects.isEmpty()) {
+                    Text(
+                        "还没有项目，点击「创作」开始吧",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = androidx.compose.ui.Modifier.padding(vertical = 8.dp)
+                    )
+                } else {
+                    RecentProjectsRow(
+                        projects = recentProjects,
+                        onProjectClick = onNavigateToProjects
+                    )
+                }
             }
             
             // Tips Card
@@ -522,11 +548,13 @@ private fun RecentProjectsRow(
                             fontWeight = FontWeight.Medium,
                             maxLines = 1
                         )
-                        Text(
-                            text = "${project.size}×${project.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (project.colorCount > 0) {
+                            Text(
+                                text = "${project.colorCount} 种颜色",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Text(
                             text = project.timeAgo,
                             style = MaterialTheme.typography.bodySmall,
@@ -579,7 +607,8 @@ private fun TipsCard() {
 private data class RecentProject(
     val name: String,
     val timeAgo: String,
-    val size: Int
+    val colorCount: Int,
+    val id: String
 )
 
 /**

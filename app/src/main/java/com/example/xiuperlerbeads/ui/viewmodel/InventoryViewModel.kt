@@ -189,11 +189,8 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     fun deductStock(brandId: String, mardCode: String, amount: Int) {
         viewModelScope.launch {
             try {
-                val stock = _state.value.stocks.find {
-                    it.brandId == brandId && it.mardCode == mardCode
-                } ?: return@launch
-                val newQuantity = (stock.stock - amount).coerceAtLeast(0)
-                repository.updateStock(brandId, mardCode, newQuantity)
+                // 使用 deductFromStock 操作 used 字段，保持与项目执行逻辑一致
+                repository.deductFromStock(brandId, mardCode, amount)
                 loadData()
             } catch (e: Exception) {
                 _state.update { it.copy(error = "扣减失败: ${e.message}") }
