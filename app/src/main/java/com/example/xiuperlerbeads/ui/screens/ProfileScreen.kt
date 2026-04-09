@@ -108,7 +108,7 @@ fun ProfileScreen(
                     onRename = { collectionToRename = collection },
                     onDelete = { collectionToDelete = collection }
                 )
-                HorizontalDivider(
+                Divider(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
@@ -135,7 +135,7 @@ fun ProfileScreen(
                     subtitle = "${state.tags.size} 个标签",
                     onClick = { showTagManageDialog = true }
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                Divider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             }
             item {
                 SettingsRow(
@@ -149,7 +149,7 @@ fun ProfileScreen(
                             val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
                             state.entries.sortedByDescending { it.createdAt }.forEach { e ->
                                 appendLine("[${fmt.format(java.util.Date(e.displayTime))}]")
-                                if (e.location.isNotBlank()) appendLine("地点: ${e.location}")
+                                if (!e.location.isNullOrBlank()) appendLine("地点: ${e.location}")
                                 if (e.expense > 0) appendLine("花费: ¥${e.expense}")
                                 appendLine(e.content); appendLine()
                             }
@@ -158,7 +158,7 @@ fun ProfileScreen(
                         else Toast.makeText(context, "备份失败", Toast.LENGTH_SHORT).show()
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                Divider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             }
             item {
                 SettingsRow(
@@ -301,7 +301,7 @@ private fun AccountCard(
             }
 
             Spacer(Modifier.height(16.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
             Spacer(Modifier.height(16.dp))
 
             // 统计数字
@@ -310,12 +310,12 @@ private fun AccountCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 StatItem(label = "记录", value = entryCount.toString())
-                VerticalDivider(
+                Divider(
                     modifier = Modifier.height(36.dp),
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
                 )
                 StatItem(label = "文集", value = collectionCount.toString())
-                VerticalDivider(
+                Divider(
                     modifier = Modifier.height(36.dp),
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
                 )
@@ -597,7 +597,7 @@ private fun TagManageDialog(
                             }
                         }
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
                 }
                 OutlinedTextField(value = newTagName, onValueChange = { newTagName = it }, label = { Text("新标签名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))

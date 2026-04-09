@@ -146,7 +146,7 @@ fun AddEntryScreen(
                 onRemove = { id -> attachments = attachments.filter { it.id != id } }
             )
 
-            HorizontalDivider(thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+            Divider(thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
 
             // ----------------------------------------------------------------
             // 中区：文字输入
@@ -166,7 +166,7 @@ fun AddEntryScreen(
                 )
             )
 
-            HorizontalDivider(thickness = 0.5.dp)
+            Divider(thickness = 0.5.dp)
 
             // ----------------------------------------------------------------
             // 下区：元数据表单
@@ -198,7 +198,7 @@ fun AddEntryScreen(
 
             // 手帐专属字段
             if (isHandZhang) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Divider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 // 时间
                 ListItem(
@@ -223,7 +223,7 @@ fun AddEntryScreen(
                     modifier = Modifier.clickable { showDatePicker = true }
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Divider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 // 地点
                 ListItem(
@@ -249,7 +249,7 @@ fun AddEntryScreen(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            Divider(modifier = Modifier.padding(horizontal = 16.dp))
 
             // Tag（所有文集都有）
             ListItem(
@@ -287,7 +287,7 @@ fun AddEntryScreen(
 
             // 手帐专属：花费
             if (isHandZhang) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Divider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 ListItem(
                     headlineContent = {

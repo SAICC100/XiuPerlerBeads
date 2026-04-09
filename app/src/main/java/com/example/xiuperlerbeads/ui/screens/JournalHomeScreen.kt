@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.xiuperlerbeads.ui.screens
 
 import androidx.compose.foundation.background
@@ -32,7 +34,6 @@ import com.example.xiuperlerbeads.ui.viewmodel.JournalViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalHomeScreen(
     onNavigateToAddEntry: () -> Unit,
@@ -85,7 +86,7 @@ fun JournalHomeScreen(
                 onAddCollection = { showNewCollectionDialog = true }
             )
 
-            HorizontalDivider(thickness = 0.5.dp)
+            Divider(thickness = 0.5.dp)
 
             // 内容 Feed
             if (state.isLoading) {
@@ -101,7 +102,7 @@ fun JournalHomeScreen(
                 ) {
                     items(state.filteredEntries, key = { it.id }) { entry ->
                         EntryCard(entry = entry)
-                        HorizontalDivider(
+                        Divider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 0.5.dp,
                             color = MaterialTheme.colorScheme.outlineVariant

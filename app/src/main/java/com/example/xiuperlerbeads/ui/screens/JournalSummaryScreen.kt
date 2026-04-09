@@ -204,7 +204,7 @@ private fun CalendarTab(
                 Icon(Icons.Default.ChevronLeft, contentDescription = "上个月")
             }
             Text(
-                "$year年 ${monthNames[month]}",
+                "${year}年 ${monthNames[month]}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -396,7 +396,7 @@ private fun LocationStatRow(stat: LocationStat, maxCount: Float, rank: Int) {
             }
             Spacer(Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = { progress },
+                progress = progress,
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                 color = MaterialTheme.colorScheme.tertiary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -642,7 +642,7 @@ private fun DayDetailDialog(
                                 )
                             }
                         }
-                        HorizontalDivider(thickness = 0.5.dp)
+                        Divider(thickness = 0.5.dp)
                     }
                 }
             }
