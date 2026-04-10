@@ -492,3 +492,32 @@ data class AIRecognitionResult(
         val confidence: Float
     )
 }
+/**
+ * 本地快照信息
+ */
+data class SnapshotInfo(
+    val filename: String,
+    val snapshotTime: Long,
+    val label: String,
+    val brandsCount: Int,
+    val stocksCount: Int,
+    val projectsCount: Int,
+    val fileSizeBytes: Long
+)
+
+/**
+ * 导入数据预览信息
+ */
+data class ImportPreview(
+    val brandsCount: Int,
+    val stocksCount: Int,
+    val projectsCount: Int,
+    val customColorsCount: Int,
+    val purchaseRecordsCount: Int,
+    val existingBrandsCount: Int,
+    val existingStocksCount: Int,
+    val existingProjectsCount: Int,
+    val conflictBrandNames: List<String>
+) {
+    val hasConflicts: Boolean get() = conflictBrandNames.isNotEmpty()
+}

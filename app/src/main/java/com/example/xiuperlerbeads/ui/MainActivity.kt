@@ -42,10 +42,9 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Screens that should show bottom bar
     val bottomBarRoutes = listOf(
-        Screen.JournalHome.route,
-        Screen.JournalSummary.route,
+        Screen.Home.route,
+        Screen.Create.route,
         Screen.Inventory.route,
         Screen.Profile.route
     )
@@ -59,9 +58,9 @@ fun MainScreen() {
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = "首页") },
                         label = { Text("首页") },
-                        selected = currentRoute == Screen.JournalHome.route,
+                        selected = currentRoute == Screen.Home.route,
                         onClick = {
-                            navController.navigate(Screen.JournalHome.route) {
+                            navController.navigate(Screen.Home.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -69,11 +68,11 @@ fun MainScreen() {
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.BarChart, contentDescription = "汇总") },
-                        label = { Text("汇总") },
-                        selected = currentRoute == Screen.JournalSummary.route,
+                        icon = { Icon(Icons.Default.Palette, contentDescription = "创作") },
+                        label = { Text("创作") },
+                        selected = currentRoute == Screen.Create.route,
                         onClick = {
-                            navController.navigate(Screen.JournalSummary.route) {
+                            navController.navigate(Screen.Create.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -110,35 +109,10 @@ fun MainScreen() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.JournalHome.route,
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            // Journal Home Screen
-            composable(Screen.JournalHome.route) {
-                JournalHomeScreen(
-                    onNavigateToAddEntry = { navController.navigate(Screen.AddEntry.route) },
-                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
-                )
-            }
-
-            // Add Entry Screen
-            composable(Screen.AddEntry.route) {
-                AddEntryScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            // Journal Summary Screen
-            composable(Screen.JournalSummary.route) {
-                JournalSummaryScreen()
-            }
-
-            // Profile Screen
-            composable(Screen.Profile.route) {
-                ProfileScreen()
-            }
-
-            // Home Screen (legacy)
+            // Home Screen
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
@@ -173,6 +147,21 @@ fun MainScreen() {
                     onNavigateToBrandManager = {
                         navController.navigate(Screen.BrandManager.route)
                     }
+                )
+            }
+
+            // Profile Screen
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onNavigateToBrandManager = { navController.navigate(Screen.BrandManager.route) },
+                    onNavigateToStatistics = { navController.navigate(Screen.Statistics.route) },
+                    onNavigateToRestock = { navController.navigate(Screen.Restock.route) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToColorConverter = { navController.navigate(Screen.ColorConverter.route) },
+                    onNavigateToShipping = { navController.navigate(Screen.Shipping.route) },
+                    onNavigateToCalendar = { navController.navigate(Screen.CompletionCalendar.route) },
+                    onNavigateToBackupRestore = { navController.navigate(Screen.BackupRestore.route) },
+                    onNavigateToHelpCenter = { navController.navigate(Screen.HelpCenter.route) }
                 )
             }
 
@@ -259,7 +248,6 @@ fun MainScreen() {
                 TemplateLibraryScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onTemplateSelected = { _ ->
-                        // Template library is currently empty; navigate to new canvas when a template is selected
                         navController.navigate(Screen.Canvas.createRoute(Screen.NEW_PROJECT_ID)) {
                             popUpTo(Screen.TemplateLibrary.route) { inclusive = true }
                         }
@@ -270,6 +258,62 @@ fun MainScreen() {
             // Brand Manager Screen
             composable(Screen.BrandManager.route) {
                 BrandManagerScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToHiddenColors = { brandId ->
+                        navController.navigate(Screen.HiddenColors.createRoute(brandId))
+                    },
+                    onNavigateToCustomColors = { brandId ->
+                        navController.navigate(Screen.CustomColors.createRoute(brandId))
+                    }
+                )
+            }
+
+            // Color Converter Screen
+            composable(Screen.ColorConverter.route) {
+                ColorConverterScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Hidden Colors Screen
+            composable(Screen.HiddenColors.route) { backStackEntry ->
+                val brandId = backStackEntry.arguments?.getString("brandId") ?: ""
+                HiddenColorsScreen(
+                    brandId = brandId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Custom Colors Screen
+            composable(Screen.CustomColors.route) { backStackEntry ->
+                val brandId = backStackEntry.arguments?.getString("brandId") ?: ""
+                CustomColorsScreen(
+                    brandId = brandId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Shipping Screen
+            composable(Screen.Shipping.route) {
+                ShippingScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Completion Calendar Screen
+            composable(Screen.CompletionCalendar.route) {
+                CompletionCalendarScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Backup & Restore Screen
+            composable(Screen.HelpCenter.route) {
+                HelpCenterScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable(Screen.BackupRestore.route) {
+                BackupRestoreScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

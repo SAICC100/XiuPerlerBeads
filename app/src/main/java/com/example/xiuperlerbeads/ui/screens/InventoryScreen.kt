@@ -693,6 +693,13 @@ private fun AddStockDialog(
     var brandId by remember { mutableStateOf(selectedBrandId ?: brands.firstOrNull()?.id ?: "") }
     var mardCode by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
+
+    // 当 brands 列表加载完成后，若当前 brandId 为空则自动选择第一个品牌
+    LaunchedEffect(brands) {
+        if (brandId.isBlank() && brands.isNotEmpty()) {
+            brandId = brands.first().id
+        }
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,

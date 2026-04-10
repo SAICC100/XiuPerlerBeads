@@ -58,7 +58,7 @@ fun StatisticsScreen(
     val enoughCount = state.stocks.count { it.available > 50 && !it.isHidden }
     
     // 历史记录
-    val historyRecords = remember { state.historyRecords }
+    val historyRecords = state.historyRecords
     
     Scaffold(
         topBar = {
@@ -125,7 +125,10 @@ fun StatisticsScreen(
                     stocks = state.stocks
                 )
                 1 -> TrendTab(historyRecords = historyRecords)
-                2 -> HistoryTab(historyRecords = historyRecords)
+                2 -> HistoryTab(
+                    historyRecords = historyRecords,
+                    onUndo = { recordId -> inventoryViewModel.undoHistoryRecord(recordId) }
+                )
             }
         }
     }
@@ -505,7 +508,7 @@ private fun TrendTab(historyRecords: List<HistoryRecord>) {
 }
 
 @Composable
-private fun HistoryTab(historyRecords: List<HistoryRecord>) {
+private fun HistoryTab(historyRecords: List<HistoryRecord>, onUndo: (recordId: String) -> Unit = {}) {
     if (historyRecords.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -534,14 +537,14 @@ private fun HistoryTab(historyRecords: List<HistoryRecord>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(historyRecords.take(50)) { record ->
-                HistoryItem(record = record)
+                HistoryItem(record = record, onUndo = onUndo)
             }
         }
     }
 }
 
 @Composable
-private fun HistoryItem(record: HistoryRecord) {
+private fun HistoryItem(record: HistoryRecord, onUndo: (recordId: String) -> Unit = {}) {
     val dateFormat = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
     
     Card(
@@ -583,14 +586,31 @@ color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
-            // 显示变化量
-            record.changeAmount?.let { amount ->
-                Text(
-                    if (amount >= 0) "+$amount" else "$amount",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (amount >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-                )
+            // 显示变化量 + 撤销按钮
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                record.changeAmount?.let { amount ->
+                    Text(
+                        if (amount >= 0) "+$amount" else "$amount",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (amount >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                    )
+                }
+                val canUndo = record.type in listOf(HistoryType.STOCK_ADD, HistoryType.STOCK_UPDATE, HistoryType.STOCK_DEDUCT)
+                        && record.oldValue != null && record.brandId != null && record.mardCode != null
+                if (canUndo) {
+                    IconButton(
+                        onClick = { onUndo(record.id) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Undo,
+                            contentDescription = "撤销",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

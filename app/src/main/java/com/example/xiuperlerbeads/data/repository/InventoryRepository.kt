@@ -576,6 +576,25 @@ class InventoryRepository(private val context: Context) {
         saveBrandStocks()
     }
 
+
+    fun updateCustomColor(colorId: String, colorCode: String, colorHex: String, colorName: String) {
+        val index = _customColors.indexOfFirst { it.id == colorId }
+        if (index == -1) return
+        val old = _customColors[index]
+        val newMardCode = if (colorCode.uppercase().startsWith("#")) colorCode.uppercase() else "#${colorCode.uppercase()}"
+        // 更新所有品牌中该颜色的 mardCode
+        if (old.mardCode != newMardCode) {
+            _brandStocks.replaceAll { if (it.mardCode == old.mardCode) it.copy(mardCode = newMardCode) else it }
+        }
+        _customColors[index] = old.copy(
+            colorCode = colorCode.uppercase(),
+            colorHex = colorHex.removePrefix("#"),
+            colorName = colorName,
+            updatedAt = System.currentTimeMillis()
+        )
+        saveCustomColors()
+        saveBrandStocks()
+    }
     // ============================================================================
     // 购买记录
     // ============================================================================
@@ -611,6 +630,12 @@ class InventoryRepository(private val context: Context) {
 
             addHistoryRecord(HistoryType.PURCHASE_COMPLETE, description = "采购到货: ${record.name}")
         }
+    }
+
+    fun deletePurchaseRecord(recordId: String) {
+        val record = _purchaseRecords.find { it.id == recordId } ?: return
+        _purchaseRecords.removeAll { it.id == recordId }
+        savePurchaseRecords()
     }
 
     // ============================================================================
@@ -653,6 +678,33 @@ class InventoryRepository(private val context: Context) {
         }
 
         saveHistoryRecords()
+    }
+
+
+    /**
+     * 撤销指定历史记录（仅支持库存相关操作）
+     * @return true=成功, false=无法撤销
+     */
+    fun undoHistoryRecord(recordId: String): Boolean {
+        val record = _historyRecords.find { it.id == recordId } ?: return false
+        val canUndo = record.type in listOf(HistoryType.STOCK_ADD, HistoryType.STOCK_UPDATE, HistoryType.STOCK_DEDUCT)
+        if (!canUndo) return false
+
+        val brandId = record.brandId ?: return false
+        val mardCode = record.mardCode ?: return false
+        val restoreValue = record.oldValue ?: return false
+
+        // 恢复到操作前的库存值
+        val index = _brandStocks.indexOfFirst { it.brandId == brandId && it.mardCode == mardCode }
+        if (index == -1) return false
+        _brandStocks[index] = _brandStocks[index].copy(stock = restoreValue)
+        saveBrandStocks()
+
+        // 标记此历史记录为已撤销（从列表中移除）
+        _historyRecords.removeAll { it.id == recordId }
+        saveHistoryRecords()
+
+        return true
     }
 
     // ============================================================================
@@ -1065,6 +1117,268 @@ class InventoryRepository(private val context: Context) {
         
         // 清除 SharedPreferences
         prefs.edit().clear().apply()
+    }
+
+
+    // ============================================================================
+    // 本地快照管理（最多保留 10 个版本）
+    // ============================================================================
+
+    private val snapshotsDir: java.io.File
+        get() = java.io.File(context.filesDir, "snapshots").also { it.mkdirs() }
+
+    /**
+     * 创建本地快照，自动维护最多 10 个版本（超出则删最旧的）
+     * @param label 快照标签，默认为当前时间
+     * @return 是否成功
+     */
+    fun createSnapshot(label: String = ""): Boolean {
+        return try {
+            val ts = System.currentTimeMillis()
+            val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
+            val filename = "snapshot_${sdf.format(java.util.Date(ts))}.json"
+            val file = java.io.File(snapshotsDir, filename)
+
+            val json = org.json.JSONObject().apply {
+                put("brands", prefs.getString(KEY_BRANDS, "[]"))
+                put("brandStocks", prefs.getString(KEY_BRAND_STOCKS, "[]"))
+                put("projects", prefs.getString(KEY_PROJECTS, "[]"))
+                put("customColors", prefs.getString(KEY_CUSTOM_COLORS, "[]"))
+                put("purchaseRecords", prefs.getString(KEY_PURCHASE_RECORDS, "[]"))
+                put("snapshotTime", ts)
+                put("label", label)
+                put("brandsCount", _brands.size)
+                put("stocksCount", _brandStocks.size)
+                put("projectsCount", _projects.size)
+            }
+            file.writeText(json.toString(2))
+
+            // 只保留最新 10 个快照
+            val allSnapshots = snapshotsDir.listFiles { f -> f.name.startsWith("snapshot_") && f.name.endsWith(".json") }
+                ?.sortedBy { it.lastModified() } ?: emptyList()
+            if (allSnapshots.size > 10) {
+                allSnapshots.take(allSnapshots.size - 10).forEach { it.delete() }
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * 获取所有本地快照列表（按时间倒序）
+     */
+    fun listSnapshots(): List<SnapshotInfo> {
+        return snapshotsDir.listFiles { f -> f.name.startsWith("snapshot_") && f.name.endsWith(".json") }
+            ?.mapNotNull { file ->
+                try {
+                    val json = org.json.JSONObject(file.readText())
+                    SnapshotInfo(
+                        filename = file.name,
+                        snapshotTime = json.optLong("snapshotTime", file.lastModified()),
+                        label = json.optString("label", ""),
+                        brandsCount = json.optInt("brandsCount", 0),
+                        stocksCount = json.optInt("stocksCount", 0),
+                        projectsCount = json.optInt("projectsCount", 0),
+                        fileSizeBytes = file.length()
+                    )
+                } catch (e: Exception) { null }
+            }
+            ?.sortedByDescending { it.snapshotTime }
+            ?: emptyList()
+    }
+
+    /**
+     * 从快照恢复数据
+     */
+    fun restoreSnapshot(filename: String): Boolean {
+        return try {
+            val file = java.io.File(snapshotsDir, filename)
+            if (!file.exists()) return false
+            importData(file.readText())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * 删除指定快照
+     */
+    fun deleteSnapshot(filename: String): Boolean {
+        return try {
+            java.io.File(snapshotsDir, filename).delete()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+
+    /**
+     * 预览导入数据（不实际写入）
+     * @return ImportPreview 包含数量统计和冲突信息
+     */
+    fun previewImport(json: String): ImportPreview? {
+        return try {
+            val data = org.json.JSONObject(json)
+            val brandsArray = data.optJSONArray("brands")
+            val stocksArray = data.optJSONArray("brandStocks")
+            val projectsArray = data.optJSONArray("projects")
+            val customColorsArray = data.optJSONArray("customColors")
+            val purchaseArray = data.optJSONArray("purchaseRecords")
+
+            val incomingBrandCount = brandsArray?.length() ?: 0
+            val incomingStockCount = stocksArray?.length() ?: 0
+            val incomingProjectCount = projectsArray?.length() ?: 0
+            val incomingCustomColorCount = customColorsArray?.length() ?: 0
+
+            // 检测品牌名称冲突
+            val conflictBrandNames = mutableListOf<String>()
+            if (brandsArray != null) {
+                for (i in 0 until brandsArray.length()) {
+                    val incomingName = brandsArray.getJSONObject(i).optString("name", "")
+                    if (_brands.any { it.name == incomingName }) {
+                        conflictBrandNames.add(incomingName)
+                    }
+                }
+            }
+
+            ImportPreview(
+                brandsCount = incomingBrandCount,
+                stocksCount = incomingStockCount,
+                projectsCount = incomingProjectCount,
+                customColorsCount = incomingCustomColorCount,
+                purchaseRecordsCount = purchaseArray?.length() ?: 0,
+                existingBrandsCount = _brands.size,
+                existingStocksCount = _brandStocks.size,
+                existingProjectsCount = _projects.size,
+                conflictBrandNames = conflictBrandNames
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 合并导入：将新数据合并到现有数据（品牌名不冲突时添加，冲突时跳过）
+     */
+    fun importDataMerge(json: String): Boolean {
+        return try {
+            val data = org.json.JSONObject(json)
+
+            data.optJSONArray("brands")?.let { array ->
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val brand = parseBrand(obj)
+                    if (_brands.none { it.name == brand.name }) {
+                        _brands.add(brand)
+                    }
+                }
+                saveBrands()
+            }
+
+            data.optJSONArray("brandStocks")?.let { array ->
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val stock = parseBrandStock(obj)
+                    if (_brandStocks.none { it.brandId == stock.brandId && it.mardCode == stock.mardCode }) {
+                        _brandStocks.add(stock)
+                    }
+                }
+                saveBrandStocks()
+            }
+
+            data.optJSONArray("projects")?.let { array ->
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val project = parseProjectRecord(obj)
+                    if (_projects.none { it.id == project.id }) {
+                        _projects.add(project)
+                    }
+                }
+                saveProjects()
+            }
+
+            data.optJSONArray("customColors")?.let { array ->
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val color = parseCustomColor(obj)
+                    if (_customColors.none { it.colorCode.equals(color.colorCode, ignoreCase = true) }) {
+                        _customColors.add(color)
+                    }
+                }
+                saveCustomColors()
+            }
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // ============================================================================
+    // 品牌合并
+    // ============================================================================
+
+    /**
+     * 将 sourceBrandId 的库存累加到 targetBrandId，然后删除源品牌。
+     * 规则：同色号数量相加；目标品牌无此色号时直接迁移（重新关联 brandId）。
+     * @return true 成功，false 品牌不存在
+     */
+    fun mergeBrand(sourceBrandId: String, targetBrandId: String): Boolean {
+        val source = _brands.find { it.id == sourceBrandId } ?: return false
+        val target = _brands.find { it.id == targetBrandId } ?: return false
+
+        // 遍历源品牌所有库存，合并到目标品牌
+        val sourceStocks = _brandStocks.filter { it.brandId == sourceBrandId }
+        for (srcStock in sourceStocks) {
+            val tgtIndex = _brandStocks.indexOfFirst {
+                it.brandId == targetBrandId && it.mardCode == srcStock.mardCode
+            }
+            if (tgtIndex >= 0) {
+                // 目标品牌已有此色号：数量相加
+                val tgt = _brandStocks[tgtIndex]
+                _brandStocks[tgtIndex] = tgt.copy(
+                    stock = tgt.stock + srcStock.stock,
+                    isHidden = tgt.isHidden && srcStock.isHidden
+                )
+            } else {
+                // 目标品牌没有此色号：直接迁移
+                _brandStocks.add(srcStock.copy(id = srcStock.id, brandId = targetBrandId))
+            }
+        }
+
+        // 删除源品牌所有库存记录
+        _brandStocks.removeAll { it.brandId == sourceBrandId }
+
+        // 迁移项目
+        for (i in _projects.indices) {
+            if (_projects[i].brandId == sourceBrandId) {
+                _projects[i] = _projects[i].copy(brandId = targetBrandId)
+            }
+        }
+
+        // 删除源品牌
+        _brands.removeAll { it.id == sourceBrandId }
+        if (_currentBrandId == sourceBrandId) {
+            _currentBrandId = targetBrandId
+            saveCurrentBrandId()
+        }
+
+        saveBrands()
+        saveBrandStocks()
+        saveProjects()
+
+        addHistoryRecord(
+            HistoryType.BRAND_DELETE,
+            description = "合并品牌「${source.name}」→「${target.name}」",
+            brandId = targetBrandId,
+            brandName = target.name
+        )
+
+        return true
     }
 
     companion object {
