@@ -31,7 +31,7 @@ data class InventoryState(
 ) {
     val filteredStocks: List<BrandStock>
         get() {
-            var result = stocks
+            var result = stocks.filter { !it.isHidden }
 
             if (selectedBrandId != null) {
                 result = result.filter { it.brandId == selectedBrandId }
@@ -63,16 +63,20 @@ data class InventoryState(
         get() = brands.find { it.id == selectedBrandId }
 
     val lowStockCount: Int
-        get() = stocks.count { it.isLowStock() }
+        get() = stocks.count { stock ->
+            if (stock.isHidden) return@count false
+            val threshold = brands.find { it.id == stock.brandId }?.lowStockThreshold ?: 100
+            stock.available in 1 until threshold
+        }
 
     val outOfStockCount: Int
-        get() = stocks.count { it.available <= 0 }
+        get() = stocks.count { !it.isHidden && it.available <= 0 }
 
     val totalColors: Int
-        get() = stocks.size
+        get() = stocks.count { !it.isHidden }
 
     val totalQuantity: Int
-        get() = stocks.sumOf { it.available }
+        get() = stocks.filter { !it.isHidden }.sumOf { it.available }
 }
 
 class InventoryViewModel(application: Application) : AndroidViewModel(application) {
@@ -137,7 +141,7 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     fun addBrand(name: String, colorSystem: ColorSystem, threshold: Int = 100) {
         viewModelScope.launch {
             try {
-                repository.addBrand(name, colorSystem, 0)
+                repository.addBrand(name, colorSystem, threshold)
                 loadData()
             } catch (e: Exception) {
                 _state.update { it.copy(error = "添加失败: ${e.message}") }
@@ -401,5 +405,70 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+
+    // ── 项目管理 ─────────────────────────────────────────────────────────────
+
+    fun addProject(name: String, beadUsage: List<BeadUsage>, colorSystem: ColorSystem = ColorSystem.MARD) {
+        viewModelScope.launch {
+            try {
+                repository.addProject(name, beadUsage, colorSystem)
+                loadData()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "添加项目失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteProject(projectId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteProject(projectId)
+                loadData()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "删除项目失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun executeProject(projectId: String, brandId: String) {
+        viewModelScope.launch {
+            try {
+                repository.executeProject(projectId, brandId)
+                loadData()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "执行项目失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun archiveProject(projectId: String) {
+        viewModelScope.launch {
+            try {
+                repository.archiveProject(projectId)
+                loadData()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "归档失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun updateProjectName(projectId: String, newName: String) {
+        viewModelScope.launch {
+            try {
+                repository.updateProjectName(projectId, newName)
+                loadData()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "更新失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun getPlannedProjects(): List<ProjectRecord> =
+        _state.value.projects.filter { it.isPlanned && !it.isArchived }
+
+    fun getExecutedProjects(): List<ProjectRecord> =
+        _state.value.projects.filter { !it.isPlanned && !it.isArchived }
+
 
 }

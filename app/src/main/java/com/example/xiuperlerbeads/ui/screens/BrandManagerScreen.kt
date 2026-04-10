@@ -125,7 +125,7 @@ fun BrandManagerScreen(
             icon = { Icon(Icons.Default.Warning, null) },
             title = { Text("删除品牌") },
             text = {
-                Text("确定要删除品牌「${brand.name}」吗？\n\n这不会删除该品牌下的库存记录。")
+                Text("确定要删除品牌「${brand.name}」吗？\n\n该品牌下的所有库存记录也会一并删除，此操作不可撤销。")
             },
             confirmButton = {
                 Button(

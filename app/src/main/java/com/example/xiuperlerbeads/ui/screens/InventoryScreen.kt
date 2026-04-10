@@ -208,6 +208,7 @@ fun InventoryScreen(
                         StockItemCard(
                             stock = stock,
                             colorInfo = viewModel.getColorInfo(stock.mardCode),
+                            threshold = state.selectedBrand?.lowStockThreshold ?: 100,
                             onClick = { showEditStockDialog = stock }
                         )
                     }
@@ -233,13 +234,14 @@ fun InventoryScreen(
         EditStockDialog(
             stock = stock,
             colorInfo = viewModel.getColorInfo(stock.mardCode),
+            threshold = state.selectedBrand?.lowStockThreshold ?: 100,
             onDismiss = { showEditStockDialog = null },
             onSave = { newQuantity ->
                 viewModel.updateStockQuantity(stock.brandId, stock.mardCode, newQuantity)
                 showEditStockDialog = null
             },
             onDelete = {
-                // Handle delete
+                viewModel.hideColor(stock.brandId, stock.mardCode)
                 showEditStockDialog = null
             }
         )
@@ -515,11 +517,12 @@ private fun EmptyStockPrompt(
 private fun StockItemCard(
     stock: BrandStock,
     colorInfo: com.example.xiuperlerbeads.domain.model.BeadColor?,
+    threshold: Int = 100,
     onClick: () -> Unit
 ) {
     val statusColor = when {
         stock.available <= 0 -> StockOut
-        stock.isLowStock() -> StockLow
+        stock.isLowStock(threshold) -> StockLow
         else -> StockEnough
     }
     
@@ -789,6 +792,7 @@ private fun AddStockDialog(
 private fun EditStockDialog(
     stock: BrandStock,
     colorInfo: com.example.xiuperlerbeads.domain.model.BeadColor?,
+    threshold: Int = 100,
     onDismiss: () -> Unit,
     onSave: (Int) -> Unit,
     onDelete: () -> Unit
@@ -834,7 +838,7 @@ private fun EditStockDialog(
                     Text(
                         "可用: ${stock.available}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (stock.available < 100) StockLow else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (stock.available < threshold) StockLow else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(

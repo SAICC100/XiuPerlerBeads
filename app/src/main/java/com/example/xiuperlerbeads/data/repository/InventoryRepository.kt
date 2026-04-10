@@ -518,6 +518,14 @@ class InventoryRepository(private val context: Context) {
         }
     }
 
+    fun updateProjectName(projectId: String, newName: String) {
+        val index = _projects.indexOfFirst { it.id == projectId }
+        if (index >= 0) {
+            _projects[index] = _projects[index].copy(name = newName)
+            saveProjects()
+        }
+    }
+
     fun getPlannedProjects(): List<ProjectRecord> {
         return _projects.filter { it.isPlanned && it.parentId == null }
     }
@@ -697,7 +705,15 @@ class InventoryRepository(private val context: Context) {
         // 恢复到操作前的库存值
         val index = _brandStocks.indexOfFirst { it.brandId == brandId && it.mardCode == mardCode }
         if (index == -1) return false
-        _brandStocks[index] = _brandStocks[index].copy(stock = restoreValue)
+        // STOCK_DEDUCT 记录的 oldValue 是扣减前的 available（stock-used），恢复时需还原 used
+        // STOCK_ADD/STOCK_UPDATE 记录的 oldValue 是 stock，直接还原 stock
+        if (record.type == HistoryType.STOCK_DEDUCT) {
+            val current = _brandStocks[index]
+            val restoredUsed = current.stock - restoreValue
+            _brandStocks[index] = current.copy(used = restoredUsed.coerceAtLeast(0))
+        } else {
+            _brandStocks[index] = _brandStocks[index].copy(stock = restoreValue)
+        }
         saveBrandStocks()
 
         // 标记此历史记录为已撤销（从列表中移除）
@@ -1342,6 +1358,7 @@ class InventoryRepository(private val context: Context) {
                 val tgt = _brandStocks[tgtIndex]
                 _brandStocks[tgtIndex] = tgt.copy(
                     stock = tgt.stock + srcStock.stock,
+                    used = tgt.used + srcStock.used,
                     isHidden = tgt.isHidden && srcStock.isHidden
                 )
             } else {

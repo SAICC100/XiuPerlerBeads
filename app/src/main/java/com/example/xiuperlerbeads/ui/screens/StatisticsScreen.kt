@@ -50,12 +50,25 @@ fun StatisticsScreen(
     val tabs = listOf("概览", "使用趋势", "历史记录")
     val exportManager = remember { ExportManager(context) }
     
-    // 计算统计数据
-    val totalColors = state.stocks.count { !it.isHidden }
-    val totalQuantity = state.stocks.sumOf { it.available }
-    val lowStockCount = state.stocks.count { it.available in 1..50 && !it.isHidden }
-    val outOfStockCount = state.stocks.count { it.available <= 0 && !it.isHidden }
-    val enoughCount = state.stocks.count { it.available > 50 && !it.isHidden }
+    // 计算统计数据（按选中品牌过滤）
+    val brandMap = remember(state.brands) { state.brands.associateBy { it.id } }
+    val displayStocks = remember(state.stocks, state.selectedBrandId) {
+        if (state.selectedBrandId != null)
+            state.stocks.filter { it.brandId == state.selectedBrandId && !it.isHidden }
+        else
+            state.stocks.filter { !it.isHidden }
+    }
+    val totalColors = displayStocks.size
+    val totalQuantity = displayStocks.sumOf { it.available }
+    val lowStockCount = displayStocks.count { stock ->
+        val threshold = brandMap[stock.brandId]?.lowStockThreshold ?: 100
+        stock.available in 1 until threshold
+    }
+    val outOfStockCount = displayStocks.count { it.available <= 0 }
+    val enoughCount = displayStocks.count { stock ->
+        val threshold = brandMap[stock.brandId]?.lowStockThreshold ?: 100
+        stock.available >= threshold
+    }
     
     // 历史记录
     val historyRecords = state.historyRecords
@@ -79,9 +92,9 @@ fun StatisticsScreen(
                             sb.appendLine("=".repeat(30))
                             sb.appendLine("总颜色数: $totalColors 种")
                             sb.appendLine("总库存量: $totalQuantity 颗")
-                            sb.appendLine("充足 (>50): $enoughCount 种")
-                            sb.appendLine("偏少 (1-50): $lowStockCount 种")
-                            sb.appendLine("缺货 (0): $outOfStockCount 种")
+                            sb.appendLine("充足: $enoughCount 种")
+                            sb.appendLine("偏低: $lowStockCount 种")
+                            sb.appendLine("缺货: $outOfStockCount 种")
                             val uri = exportManager.saveTextToFile(sb.toString(), "inventory_report")
                             if (uri != null) {
                                 val shareIntent = exportManager.shareContent(uri, "text/plain", "库存统计报表")
@@ -122,7 +135,7 @@ fun StatisticsScreen(
                     lowStockCount = lowStockCount,
                     outOfStockCount = outOfStockCount,
                     enoughCount = enoughCount,
-                    stocks = state.stocks
+                    stocks = displayStocks
                 )
                 1 -> TrendTab(historyRecords = historyRecords)
                 2 -> HistoryTab(
@@ -199,9 +212,9 @@ private fun OverviewTab(
                             
                             // 图例
                             Column {
-                                LegendItem(color = StockEnough, label = "充足 (>50)", count = enoughCount)
-                                LegendItem(color = StockLow, label = "不足 (10-50)", count = lowStockCount)
-                                LegendItem(color = StockOut, label = "缺货 (<10)", count = outOfStockCount)
+                                LegendItem(color = StockEnough, label = "充足", count = enoughCount)
+                                LegendItem(color = StockLow, label = "偏低", count = lowStockCount)
+                                LegendItem(color = StockOut, label = "缺货", count = outOfStockCount)
                             }
                         }
                     }
